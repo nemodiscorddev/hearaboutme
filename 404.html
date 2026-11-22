@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting...</title>
+  </head>
+  <body>
+    <script>
+      (function () {
+        var parts = window.location.pathname.split("/").filter(Boolean);
+        var profile = parts.find(function (part) {
+          return part === "N3moz" || part === "OwenBates";
+        });
+        var profileIndex = profile ? parts.indexOf(profile) : -1;
+        var base = profileIndex > 0 ? "/" + parts.slice(0, profileIndex).join("/") : "";
+        var target = base + "/?profile=" + encodeURIComponent(profile || "");
+        window.location.replace(target);
+      })();
+    </script>
+  </body>
+</html>

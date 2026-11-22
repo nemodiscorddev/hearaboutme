@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#f4f1e9" />
+    <title>Page not found — HearAboutMe</title>
+    <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root { --ink:#17181c; --paper:#f4f1e9; --red:#b8301a; }
+      * { box-sizing: border-box; }
+      body { margin:0; min-height:100vh; display:grid; place-items:center; padding:24px; background:var(--paper); color:var(--ink); font-family:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif; line-height:1.6; }
+      main { width:100%; max-width:640px; }
+      .code { font-family:"DM Mono",ui-monospace,monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#5d5f66; }
+      .code span { color:var(--red); }
+      h1 { margin:12px 0 16px; font-family:"Space Grotesk",system-ui,sans-serif; font-size:clamp(48px,12vw,104px); line-height:.9; letter-spacing:-.06em; }
+      p { margin:0 0 24px; color:#3b3d44; }
+      nav { display:flex; flex-wrap:wrap; gap:12px; }
+      a { display:inline-flex; align-items:center; min-height:48px; padding:0 22px; border:1px solid var(--ink); color:var(--ink); font-weight:800; font-size:14px; text-decoration:none; }
+      a:first-child { background:var(--ink); color:#fff; }
+      a:hover { background:var(--red); border-color:var(--red); color:#fff; }
+      a:focus-visible { outline:3px solid var(--red); outline-offset:3px; }
+    </style>
+  </head>
+  <body>
+    <main id="notfound">
+      <p class="code"><span>404</span> / Not found</p>
+      <h1>Page not<br />found.</h1>
+      <p>That page doesn’t exist. Try one of the profiles below.</p>
+      <nav aria-label="Profiles">
+        <a href="/">Home</a>
+        <a href="/OwenBates/">Professional profile</a>
+        <a href="/N3moz">Gaming profile</a>
+      </nav>
+    </main>
+    <script>
+      /*
+        GitHub Pages serves this file for any unknown path.
+        - /N3moz (the gaming profile is a client-rendered page) -> /?profile=N3moz  (unchanged behaviour)
+        - /OwenBates (no folder match, e.g. odd casing/paths)   -> /OwenBates/
+        - anything else                                          -> stays here and shows the 404 message
+        Works under a sub-path too (e.g. username.github.io/repo/N3moz).
+      */
+      (function () {
+        var parts = window.location.pathname.split("/").filter(Boolean);
+        var profile = parts.filter(function (p) { return p === "N3moz" || p === "OwenBates"; })[0];
+        if (!profile) return;
+        var idx = parts.indexOf(profile);
+        var base = idx > 0 ? "/" + parts.slice(0, idx).join("/") : "";
+        if (profile === "N3moz") {
+          window.location.replace(base + "/?profile=N3moz");
+        } else {
+          window.location.replace(base + "/OwenBates/");
+        }
+      })();
+    </script>
+  </body>
+</html>
