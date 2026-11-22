@@ -13,9 +13,8 @@ python -m http.server 8000
 Then visit:
 
 - `http://localhost:8000/`
-- `http://localhost:8000/hearaboutme/OwenBates/`
-- `http://localhost:8000/?profile=OwenBates`
-- `http://localhost:8000/?profile=N3moz`
+- `http://localhost:8000/OwenBates/`
+- `http://localhost:8000/N3moz/`
 
 ## GitHub Pages
 
