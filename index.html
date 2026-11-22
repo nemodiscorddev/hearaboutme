@@ -3,16 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101114" />
-    <meta name="description" content="Gaming and professional portfolios for Owen Bates and N3moz." />
-    <title>HearAboutMe</title>
+    <meta name="theme-color" content="#f4f1e9" />
+    <meta name="description" content="Want your own HearAboutMe page? Email Owen to get started." />
+    <title>Get your page — HearAboutMe</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <main class="landing landing-signup">
+        <nav class="nav" aria-label="Primary">
+          <a class="brand" href="./" aria-label="HearAboutMe home">
+            <span class="brand-mark" aria-hidden="true">H</span>
+            <span class="brand-name">HearAboutMe</span>
+          </a>
+        </nav>
+        <section class="landing-request" aria-labelledby="landing-title">
+          <p class="landing-kicker">Your page starts here</p>
+          <h1 id="landing-title">Want a page of your own?</h1>
+          <p class="landing-request-copy">Email me to sign up and tell me a little about the page you have in mind.</p>
+          <a
+            class="landing-request-link"
+            href="mailto:batesowen468@gmail.com?subject=HearAboutMe%20page%20request&body=Hi%20Owen%2C%0A%0AI%27d%20like%20to%20get%20a%20page%20on%20HearAboutMe.%0A%0AMy%20name%3A%0AWhat%20I%27d%20like%20on%20my%20page%3A"
+          >
+            Email me to get started <span aria-hidden="true">↗</span>
+          </a>
+          <p class="landing-request-email"><a href="mailto:batesowen468@gmail.com">batesowen468@gmail.com</a></p>
+        </section>
+      </main>
+    </div>
     <script src="./script.js"></script>
   </body>
 </html>
