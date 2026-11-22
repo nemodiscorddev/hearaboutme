@@ -1711,45 +1711,6 @@ h1 {
   grid-template-rows: 76px 1fr;
   background: #f4f1e9;
 }
-.landing-signup { grid-template-rows: 76px 1fr; }
-.landing-request {
-  width: 100%;
-  max-width: 1160px;
-  align-self: center;
-  margin: 0 auto;
-  padding: clamp(56px, 10vw, 128px) clamp(24px, 7vw, 80px);
-}
-.landing-request .landing-kicker { margin: 0 0 24px; color: #74767d; }
-.landing-request h1 {
-  max-width: 12ch;
-  margin: 0 0 28px;
-  color: var(--ink);
-  font: 700 clamp(56px, 10vw, 124px)/0.94 "Space Grotesk", sans-serif;
-  letter-spacing: -0.07em;
-}
-.landing-request-copy {
-  max-width: 44ch;
-  margin: 0 0 32px;
-  color: #5d5f66;
-  font-size: clamp(17px, 2vw, 21px);
-  line-height: 1.6;
-}
-.landing-request-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 24px;
-  min-height: 58px;
-  padding: 0 24px;
-  background: var(--ink);
-  color: #fff;
-  font-size: 15px;
-  font-weight: 800;
-  transition: background 160ms ease, transform 160ms ease;
-}
-.landing-request-link:hover { background: #31333a; transform: translateY(-2px); }
-.landing-request-link span { font-size: 20px; }
-.landing-request-email { margin: 20px 0 0; color: #74767d; font-size: 14px; }
-.landing-request-email a { text-decoration: underline; text-underline-offset: 3px; }
 .landing-main {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1817,8 +1778,6 @@ h1 {
 @media (max-width: 560px) {
   .nav { height: 68px; }
   .brand-name { display: none; }
-  .landing-request { padding: 48px 24px; }
-  .landing-request-link { width: 100%; justify-content: space-between; }
   .profile-link { min-height: 38px; padding: 0 12px; }
   .hero-copy { min-height: 500px; padding: 54px 20px 34px; }
   h1 { font-size: 54px; }
