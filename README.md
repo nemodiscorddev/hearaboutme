@@ -24,3 +24,7 @@ Then visit:
 4. Optionally configure the `hearabout.me` custom domain in the Pages settings.
 
 The site supports `/OwenBates` and `/N3moz` on a custom domain or repository Pages URL.
+
+## Guestbook
+
+See `SETUP-GUESTBOOK.md` to enable the shared guestbook and owner delete.

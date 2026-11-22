@@ -1797,3 +1797,160 @@ h1 {
   .live-strip { grid-template-columns: 1fr; padding: 14px; }
   .live-action { width: 100%; justify-content: center; }
 }
+
+/* ===== Gaming profile: phone optimisation ===== */
+.gaming-link-page, .gaming-profile-card { -webkit-tap-highlight-color: transparent; }
+.gaming-link-page button, .gaming-link-page a, .gaming-link-page [role="button"] { touch-action: manipulation; }
+.guestbook-sidebar { height: 100vh; height: 100dvh; }
+.guestbook-form input, .guestbook-form textarea { font-size: 16px; } /* stops iOS zoom on focus */
+
+/* no hover on touch: hide the volume popover (phones control volume with hardware buttons) */
+@media (hover: none) {
+  .volume-popover { display: none; }
+  .discord-status:hover { transform: none; }
+  .gaming-profile-card { transition: none; }
+}
+
+@media (max-width: 680px) {
+  .gaming-link-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    place-items: start center;
+    padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+  }
+  .gaming-profile-card {
+    width: 100%;
+    aspect-ratio: auto;          /* the square ratio clipped content on narrow screens */
+    min-height: calc(100dvh - 20px);
+    max-height: none;
+    overflow: visible;
+    border-radius: 28px;
+    margin: auto 0;
+    background: rgba(40, 20, 12, 0.42);
+    transform: none !important;
+  }
+  .gaming-card-topbar { height: 60px; padding: 10px 14px; }
+  .gaming-card-topbar .sound-toggle { top: 10px; left: 14px; width: 44px; height: 44px; }
+  .gaming-card-topbar .view-count { top: 12px; right: 14px; min-height: 40px; }
+  .gaming-profile-main { padding: 0 14px calc(14px + env(safe-area-inset-bottom)); }
+  .gaming-avatar { width: 88px; height: 88px; }
+  .gaming-big-time { font-size: 12px; }
+  .gaming-tagline { max-width: 100%; font-size: 14px; }
+  .dm-link { padding: 6px 2px; }
+  .discord-status { width: min(100%, 320px); min-height: 68px; }
+  .gaming-socials-inline { flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .gaming-socials-inline a, .gaming-socials-inline button { min-width: 44px; min-height: 44px; }
+  .music-player {
+    width: 100%;
+    margin-top: 22px;
+    padding: 8px;
+    grid-template-columns: 52px minmax(0, 1fr) 36px 44px 36px;
+    gap: 6px;
+    backdrop-filter: none;       /* big GPU saver on phones */
+    background: rgba(20, 16, 44, 0.55);
+  }
+  .album-art { width: 52px; height: 52px; }
+  .track-title {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    padding: 0;
+    font-size: 12px;
+  }
+  .track-control { width: 36px; height: 44px; font-size: 14px; }
+  .track-control.play { width: 44px; height: 44px; }
+  .track-progress { height: 5px; }
+  .track-line { grid-template-columns: 30px 1fr 30px; }
+
+  /* overlays fit the phone screen */
+  .lyrics-card {
+    width: calc(100vw - 20px);
+    height: min(520px, calc(100dvh - 40px));
+    min-height: 0;
+    padding: 22px 20px 18px;
+    left: auto !important;
+    top: auto !important;
+  }
+  .discord-server-card { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); overflow-y: auto; }
+  .profile-confirm-card { width: calc(100vw - 32px); }
+  .guestbook-sidebar { width: 100vw; }
+  .lyrics-close, .guestbook-close, .discord-overlay-close { min-width: 44px; min-height: 44px; }
+}
+
+@media (max-width: 360px) {
+  .gaming-profile-card h1 { font-size: 26px; }
+  .music-player { grid-template-columns: 46px minmax(0, 1fr) 32px 40px 32px; }
+  .album-art { width: 46px; height: 46px; }
+  .gaming-card-topbar .view-count { padding: 0 10px; }
+}
+
+/* short landscape phones: let the page scroll instead of clipping */
+@media (max-height: 520px) and (orientation: landscape) {
+  .gaming-link-page { place-items: start center; }
+  .gaming-profile-card { aspect-ratio: auto; overflow: visible; min-height: 0; }
+}
+
+/* ===== Guestbook: owner tools ===== */
+.guestbook-message { position: relative; }
+.guestbook-delete {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: 1px solid rgba(237, 92, 92, 0.5);
+  border-radius: 999px;
+  background: rgba(237, 92, 92, 0.12);
+  color: #ff9a9a;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.guestbook-delete:disabled { opacity: 0.5; cursor: default; }
+.owner-login {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,154,80,0.08);
+}
+.owner-login[hidden], .owner-bar[hidden] { display: none; }
+.owner-login-label { color: #ffad72; font-family: "DM Mono", monospace; font-size: 10px; text-transform: uppercase; }
+.owner-login input {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  background: rgba(0,0,0,0.25);
+  color: white;
+  font: inherit;
+  font-size: 16px;
+}
+.owner-login button, .owner-logout {
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: #ff8948;
+  color: #1a0f08;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.owner-login-status { margin: 0; color: #ff9a9a; font-size: 12px; min-height: 1em; }
+.owner-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: rgba(87,199,143,0.1);
+  color: #8fe0b5;
+  font-size: 12px;
+  font-weight: 700;
+}
+.owner-logout { min-height: 34px; padding: 0 12px; background: rgba(255,255,255,0.12); color: white; font-size: 12px; }
+.owner-badge.is-active { box-shadow: 0 0 0 2px rgba(87,199,143,0.8); }
+.guestbook-messages { flex: 1; min-height: 0; }

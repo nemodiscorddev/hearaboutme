@@ -1,3 +1,12 @@
+// ===== Shared guestbook setup (see SETUP-GUESTBOOK.md) =====
+// Fill these in so guestbook messages are saved online and every visitor sees them.
+// Leave them empty and the guestbook falls back to per-browser storage only.
+const GUESTBOOK_CONFIG = {
+  apiKey: "",        // Firebase "Web API Key"
+  databaseURL: "",   // e.g. "https://your-project-default-rtdb.europe-west1.firebasedatabase.app"
+  ownerEmail: ""     // the email of the owner account you create in Firebase Authentication
+};
+
 const profiles = {
   OwenBates: {
     mode: "professional",
@@ -112,7 +121,7 @@ function renderProfile(key) {
   if (profile.mode === "gaming") {
     document.getElementById("app").innerHTML = `
       <main class="gaming-link-page">
-        <video class="gaming-background-video" autoplay muted loop playsinline poster="./assets/n3moz-pfp.png">
+        <video class="gaming-background-video" autoplay muted loop playsinline preload="metadata" disablepictureinpicture poster="./assets/n3moz-pfp.png">
           <source src="./assets/video/city-skyline.mp4" type="video/mp4" />
         </video>
         <div class="gaming-background-shade"></div>
@@ -201,6 +210,16 @@ function renderProfile(key) {
             <textarea name="message" maxlength="240" placeholder="Write a message..." aria-label="Message" required></textarea>
             <button type="submit">Post message</button>
           </form>
+          <form class="owner-login" hidden>
+            <span class="owner-login-label">Owner login</span>
+            <input name="password" type="password" autocomplete="current-password" placeholder="Owner password" aria-label="Owner password" required />
+            <button type="submit">Log in</button>
+            <p class="owner-login-status" role="status"></p>
+          </form>
+          <div class="owner-bar" hidden>
+            <span>Owner mode — you can delete messages</span>
+            <button class="owner-logout" type="button">Log out</button>
+          </div>
           <div class="guestbook-messages">
             <div class="guestbook-empty">Be the first to leave a message.</div>
           </div>
@@ -241,6 +260,21 @@ function renderProfile(key) {
           </article>
         </div>
       </main>`;
+
+    // Skip the 15MB background video on data saver / reduced motion; keep the poster image instead
+    const bgVideo = document.querySelector(".gaming-background-video");
+    const saveData = navigator.connection && (navigator.connection.saveData || /(^|-)2g$/.test(navigator.connection.effectiveType || ""));
+    if (saveData || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      bgVideo.removeAttribute("autoplay");
+      bgVideo.pause();
+      bgVideo.innerHTML = "";
+      bgVideo.load();
+    }
+    // Pause the video when the tab is hidden to save battery
+    document.addEventListener("visibilitychange", () => {
+      if (!bgVideo.hasAttribute("autoplay")) return;
+      if (document.hidden) bgVideo.pause(); else bgVideo.play().catch(() => {});
+    });
 
     const playButton = document.querySelector(".track-control.play");
     const soundToggle = document.querySelector(".sound-toggle");
@@ -361,37 +395,62 @@ function renderProfile(key) {
     updateUkTime();
     window.setInterval(updateUkTime, 1000);
 
+    // ---- Global view counter (shared across all visitors) ----
+    // Uses the free Abacus counter API, with CounterAPI as a fallback.
+    // Counts once per browser session. Set COUNT_EVERY_LOAD = true to count every page load.
+    const COUNT_EVERY_LOAD = false;
     const viewCount = document.querySelector(".view-count strong");
-    const viewsKey = "n3moz-profile-views";
-    const sessionKey = "n3moz-view-counted";
-    const viewResetKey = "n3moz-profile-view-reset";
-    if (sessionStorage.getItem(viewResetKey) !== "2026-11-22") {
-      localStorage.setItem(viewsKey, "0");
-      sessionStorage.removeItem(sessionKey);
-      sessionStorage.setItem(viewResetKey, "2026-11-22");
-    }
-    let totalViews = Number(localStorage.getItem(viewsKey) || 0);
-    if (!sessionStorage.getItem(sessionKey)) {
-      totalViews += 1;
-      localStorage.setItem(viewsKey, String(totalViews));
-      sessionStorage.setItem(sessionKey, "true");
-    }
-    viewCount.textContent = totalViews.toLocaleString();
-
-    const updateViews = (count) => {
-      totalViews = count;
-      viewCount.textContent = totalViews.toLocaleString();
+    const viewNamespace = "hearabout-me";
+    const viewKey = "n3moz-profile-views";
+    const viewCacheKey = "n3moz-views-cache";
+    const viewSessionKey = "n3moz-view-counted-v2";
+    const viewEndpoints = [
+      {
+        hit: `https://abacus.jasoncameron.dev/hit/${viewNamespace}/${viewKey}`,
+        get: `https://abacus.jasoncameron.dev/get/${viewNamespace}/${viewKey}`,
+        read: (data) => data.value
+      },
+      {
+        hit: `https://api.counterapi.dev/v1/${viewNamespace}/${viewKey}/up`,
+        get: `https://api.counterapi.dev/v1/${viewNamespace}/${viewKey}`,
+        read: (data) => data.count
+      }
+    ];
+    const showViews = (count) => {
+      if (!Number.isFinite(count)) return;
+      viewCount.textContent = count.toLocaleString();
+      try { localStorage.setItem(viewCacheKey, String(count)); } catch (error) {}
     };
-    window.addEventListener("storage", (event) => {
-      if (event.key === viewsKey) updateViews(Number(event.newValue || 0));
-    });
-    const viewsChannel = "BroadcastChannel" in window ? new BroadcastChannel("n3moz-profile-views") : null;
-    if (viewsChannel) {
-      viewsChannel.addEventListener("message", (event) => {
-        if (Number.isFinite(event.data)) updateViews(event.data);
-      });
-      viewsChannel.postMessage(totalViews);
+    async function requestViews(mode) {
+      for (const endpoint of viewEndpoints) {
+        try {
+          const response = await fetch(endpoint[mode], { cache: "no-store" });
+          if (!response.ok) continue;
+          const count = Number(endpoint.read(await response.json()));
+          if (Number.isFinite(count)) return count;
+        } catch (error) { /* try the next endpoint */ }
+      }
+      return null;
     }
+    try {
+      const cached = Number(localStorage.getItem(viewCacheKey));
+      if (Number.isFinite(cached) && cached > 0) viewCount.textContent = cached.toLocaleString();
+    } catch (error) {}
+    (async () => {
+      let alreadyCounted = false;
+      try { alreadyCounted = !COUNT_EVERY_LOAD && sessionStorage.getItem(viewSessionKey) === "1"; } catch (error) {}
+      const count = await requestViews(alreadyCounted ? "get" : "hit");
+      if (count !== null) {
+        showViews(count);
+        if (!alreadyCounted) { try { sessionStorage.setItem(viewSessionKey, "1"); } catch (error) {} }
+      }
+    })();
+    // Pick up other people's views while the page stays open
+    window.setInterval(async () => {
+      if (document.hidden) return;
+      const count = await requestViews("get");
+      if (count !== null) showViews(count);
+    }, 60000);
 
     function updatePlayer() {
       playButton.textContent = playing ? "Ⅱ" : "▶";
@@ -555,25 +614,95 @@ function renderProfile(key) {
     const dmLink = document.querySelector(".dm-link");
     dmLink.addEventListener("click", openDiscordProfile);
 
-    const readGuestbook = () => {
-      try {
-        return JSON.parse(localStorage.getItem("n3moz-guestbook") || "[]");
-      } catch {
-        return [];
-      }
-    };
+    // ---- Guestbook: shared via Firebase Realtime Database (REST), local fallback if not configured ----
+    const gbDb = (GUESTBOOK_CONFIG.databaseURL || "").replace(/\/+$/, "");
+    const gbShared = Boolean(gbDb && GUESTBOOK_CONFIG.apiKey);
+    const ownerLoginForm = document.querySelector(".owner-login");
+    const ownerLoginStatus = document.querySelector(".owner-login-status");
+    const ownerBar = document.querySelector(".owner-bar");
+    const ownerLogout = document.querySelector(".owner-logout");
+    const ownerBadge = document.querySelector(".owner-badge");
+    const guestbookSubmit = guestbookForm.querySelector("button[type=submit]");
+    let gbMessages = [];
+    let gbPoll = null;
+    let ownerSession = null; // { idToken, refreshToken, expires }
 
-    const renderGuestbook = () => {
-      const messages = readGuestbook();
+    try { ownerSession = JSON.parse(localStorage.getItem("n3moz-owner-session") || "null"); } catch { ownerSession = null; }
+    const saveOwnerSession = (session) => {
+      ownerSession = session;
+      try {
+        if (session) localStorage.setItem("n3moz-owner-session", JSON.stringify(session));
+        else localStorage.removeItem("n3moz-owner-session");
+      } catch {}
+    };
+    const isOwner = () => Boolean(ownerSession && ownerSession.refreshToken);
+
+    async function getOwnerToken() {
+      if (!isOwner()) return null;
+      if (Date.now() < ownerSession.expires - 60000) return ownerSession.idToken;
+      try {
+        const response = await fetch(`https://securetoken.googleapis.com/v1/token?key=${GUESTBOOK_CONFIG.apiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(ownerSession.refreshToken)}`
+        });
+        if (!response.ok) throw new Error("refresh failed");
+        const data = await response.json();
+        saveOwnerSession({ idToken: data.id_token, refreshToken: data.refresh_token, expires: Date.now() + Number(data.expires_in) * 1000 });
+        return ownerSession.idToken;
+      } catch {
+        saveOwnerSession(null);
+        updateOwnerUi();
+        return null;
+      }
+    }
+
+    function updateOwnerUi() {
+      ownerBar.hidden = !isOwner();
+      if (isOwner()) ownerLoginForm.hidden = true;
+      ownerBadge.classList.toggle("is-active", isOwner());
+      renderGuestbook();
+    }
+
+    function readLocalGuestbook() {
+      try { return JSON.parse(localStorage.getItem("n3moz-guestbook") || "[]"); } catch { return []; }
+    }
+
+    async function loadGuestbook() {
+      if (!gbShared) {
+        gbMessages = readLocalGuestbook().map((entry, index) => ({ id: `local-${index}`, ...entry }));
+        renderGuestbook();
+        return;
+      }
+      try {
+        const response = await fetch(`${gbDb}/guestbook.json?orderBy=%22$key%22&limitToLast=100`, { cache: "no-store" });
+        if (!response.ok) throw new Error("load failed");
+        const data = (await response.json()) || {};
+        gbMessages = Object.entries(data)
+          .map(([id, entry]) => ({ id, ...entry }))
+          .sort((first, second) => (second.ts || 0) - (first.ts || 0));
+        renderGuestbook();
+      } catch {
+        if (!gbMessages.length) {
+          guestbookMessages.replaceChildren();
+          const note = document.createElement("div");
+          note.className = "guestbook-empty";
+          note.textContent = "Couldn't load messages right now.";
+          guestbookMessages.appendChild(note);
+        }
+      }
+    }
+
+    function renderGuestbook() {
       guestbookMessages.replaceChildren();
-      if (!messages.length) {
+      if (!gbMessages.length) {
         const empty = document.createElement("div");
         empty.className = "guestbook-empty";
         empty.textContent = "Be the first to leave a message.";
         guestbookMessages.appendChild(empty);
         return;
       }
-      messages.forEach((entry) => {
+      gbMessages.forEach((entry) => {
         const message = document.createElement("article");
         message.className = "guestbook-message";
         const name = document.createElement("strong");
@@ -581,35 +710,130 @@ function renderProfile(key) {
         const text = document.createElement("p");
         text.textContent = entry.message;
         message.append(name, text);
+        if (isOwner() && gbShared) {
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.className = "guestbook-delete";
+          remove.textContent = "Delete";
+          remove.addEventListener("click", () => deleteMessage(entry.id, remove));
+          message.appendChild(remove);
+        }
         guestbookMessages.appendChild(message);
       });
-    };
+    }
 
-    guestbookToggle.addEventListener("click", () => {
+    async function deleteMessage(id, button) {
+      if (!window.confirm("Delete this message for everyone?")) return;
+      button.disabled = true;
+      const token = await getOwnerToken();
+      if (!token) { button.disabled = false; return; }
+      try {
+        const response = await fetch(`${gbDb}/guestbook/${encodeURIComponent(id)}.json?auth=${encodeURIComponent(token)}`, { method: "DELETE" });
+        if (!response.ok) throw new Error("delete failed");
+        gbMessages = gbMessages.filter((entry) => entry.id !== id);
+        renderGuestbook();
+      } catch {
+        button.disabled = false;
+        button.textContent = "Failed — retry";
+      }
+    }
+
+    const openGuestbook = () => {
       guestbookSidebar.classList.add("open");
       guestbookSidebar.setAttribute("aria-hidden", "false");
-      renderGuestbook();
-    });
-    guestbookClose.addEventListener("click", () => {
+      loadGuestbook();
+      window.clearInterval(gbPoll);
+      gbPoll = window.setInterval(() => { if (!document.hidden) loadGuestbook(); }, 30000);
+    };
+    const closeGuestbook = () => {
       guestbookSidebar.classList.remove("open");
       guestbookSidebar.setAttribute("aria-hidden", "true");
-    });
-    guestbookForm.addEventListener("submit", (event) => {
+      window.clearInterval(gbPoll);
+    };
+    guestbookToggle.addEventListener("click", openGuestbook);
+    guestbookClose.addEventListener("click", closeGuestbook);
+
+    guestbookForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = new FormData(guestbookForm);
-      const messages = readGuestbook();
-      messages.unshift({
+      const entry = {
         name: String(data.get("name")).trim().slice(0, 30),
         message: String(data.get("message")).trim().slice(0, 240)
-      });
-      localStorage.setItem("n3moz-guestbook", JSON.stringify(messages.slice(0, 50)));
-      guestbookForm.reset();
-      renderGuestbook();
+      };
+      if (!entry.name || !entry.message) return;
+
+      if (!gbShared) {
+        const messages = readLocalGuestbook();
+        messages.unshift(entry);
+        localStorage.setItem("n3moz-guestbook", JSON.stringify(messages.slice(0, 50)));
+        guestbookForm.reset();
+        loadGuestbook();
+        return;
+      }
+
+      const lastPost = Number(localStorage.getItem("n3moz-guestbook-last") || 0);
+      if (Date.now() - lastPost < 30000) {
+        guestbookSubmit.textContent = "Wait a few seconds…";
+        window.setTimeout(() => { guestbookSubmit.textContent = "Post message"; }, 2000);
+        return;
+      }
+      guestbookSubmit.disabled = true;
+      guestbookSubmit.textContent = "Posting…";
+      try {
+        const response = await fetch(`${gbDb}/guestbook.json`, {
+          method: "POST",
+          body: JSON.stringify({ ...entry, ts: { ".sv": "timestamp" } })
+        });
+        if (!response.ok) throw new Error("post failed");
+        try { localStorage.setItem("n3moz-guestbook-last", String(Date.now())); } catch {}
+        guestbookForm.reset();
+        await loadGuestbook();
+        guestbookSubmit.textContent = "Post message";
+      } catch {
+        guestbookSubmit.textContent = "Failed — try again";
+        window.setTimeout(() => { guestbookSubmit.textContent = "Post message"; }, 2500);
+      } finally {
+        guestbookSubmit.disabled = false;
+      }
     });
+
+    // Owner login: click the OWNER badge
+    ownerBadge.addEventListener("click", () => {
+      if (!gbShared) return;
+      openGuestbook();
+      if (!isOwner()) {
+        ownerLoginForm.hidden = !ownerLoginForm.hidden;
+        if (!ownerLoginForm.hidden) ownerLoginForm.elements.password.focus();
+      }
+    });
+    ownerLoginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      ownerLoginStatus.textContent = "Logging in…";
+      try {
+        const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${GUESTBOOK_CONFIG.apiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: GUESTBOOK_CONFIG.ownerEmail, password: ownerLoginForm.elements.password.value, returnSecureToken: true })
+        });
+        if (!response.ok) throw new Error("bad login");
+        const result = await response.json();
+        saveOwnerSession({ idToken: result.idToken, refreshToken: result.refreshToken, expires: Date.now() + Number(result.expiresIn) * 1000 });
+        ownerLoginForm.reset();
+        ownerLoginStatus.textContent = "";
+        updateOwnerUi();
+      } catch {
+        ownerLoginStatus.textContent = "Wrong password.";
+      }
+    });
+    ownerLogout.addEventListener("click", () => {
+      saveOwnerSession(null);
+      updateOwnerUi();
+    });
+    updateOwnerUi();
 
     const profileCard = document.querySelector(".gaming-profile-card");
     document.querySelector(".gaming-link-page").addEventListener("pointermove", (event) => {
-      if (window.innerWidth < 680) return;
+      if (event.pointerType !== "mouse" || window.innerWidth < 680) return;
       const rect = profileCard.getBoundingClientRect();
       const x = (event.clientX - rect.left) / rect.width - 0.5;
       const y = (event.clientY - rect.top) / rect.height - 0.5;
@@ -661,7 +885,7 @@ function renderProfile(key) {
     }, { passive: false });
 
     lyricsCard.addEventListener("pointerdown", (event) => {
-      if (event.target.closest("button") || event.target.closest("a")) return;
+      if (window.innerWidth < 680 || event.target.closest("button") || event.target.closest("a")) return;
       const rect = lyricsCard.getBoundingClientRect();
       draggingLyrics = true;
       if (!lyricsPosition) {
@@ -727,6 +951,25 @@ function renderProfile(key) {
     audio.addEventListener("ended", () => loadTrack(trackIndex + 1, true));
 
     loadTrack(0, false);
+
+    // Autoplay: browsers often block sound until the visitor interacts, so try now
+    // and fall back to starting on the first tap / click / key press.
+    const startMusic = () => audio.play();
+    const armAutoplayFallback = () => {
+      const events = ["pointerup", "touchend", "click", "keydown"];
+      const onFirstInteraction = (event) => {
+        // The player's own buttons handle themselves
+        if (event.target.closest && event.target.closest(".sound-toggle, .music-player, .track-control")) {
+          events.forEach((name) => document.removeEventListener(name, onFirstInteraction, true));
+          return;
+        }
+        startMusic().then(() => {
+          events.forEach((name) => document.removeEventListener(name, onFirstInteraction, true));
+        }).catch(() => {});
+      };
+      events.forEach((name) => document.addEventListener(name, onFirstInteraction, true));
+    };
+    startMusic().catch(armAutoplayFallback);
 
     soundToggle.addEventListener("click", () => playButton.click());
     return;
